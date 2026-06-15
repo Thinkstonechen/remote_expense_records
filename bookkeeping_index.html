@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>闪账 - 极简个人记账</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col" x-data="financeApp()" x-init="init()" x-cloak>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <!-- App Logo / Icon -->
+                <div class="bg-emerald-500 text-white p-2 rounded-xl shadow-inner">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wider">闪账</h1>
+                    <p class="text-xs text-slate-400 font-light">极简记账 · 掌控收支</p>
+                </div>
+            </div>
+            
+            <!-- Quick Add Button (Desktop) -->
+            <button @click="openAddModal()" class="hidden md:flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded-xl transition duration-200 transform hover:scale-[1.02] shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <span>记一笔</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 pb-24 md:pb-8">
+        
+        <!-- Tabs & Stats Navigation (Desktop style) -->
+        <div class="flex flex-col md:flex-row md:space-x-6">
+            
+            <!-- Sidebar / Left column on desktop -->
+            <div class="w-full md:w-1/4 mb-6 md:mb-0 flex flex-col space-y-4">
+                <!-- Desktop Navigation Menu -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hidden md:block">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 px-3 mb-3">功能导航</p>
+                    <nav class="space-y-1">
+                        <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-emerald-50 text-emerald-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'" class="w-full flex items-center space-x-3 px-3 py-3 rounded-xl transition text-left">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path>
+                            </svg>
+                            <span>数据看板</span>
+                        </button>
+                        <button @click="activeTab = 'records'" :class="activeTab === 'records' ? 'bg-emerald-50 text-emerald-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'" class="w-full flex items-center space-x-3 px-3 py-3 rounded-xl transition text-left">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                            <span>交易明细</span>
+                        </button>
+                        <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-emerald-50 text-emerald-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'" class="w-full flex items-center space-x-3 px-3 py-3 rounded-xl transition text-left">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>系统设置</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Monthly Selector Widget -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">切换账期</p>
+                    <div class="relative">
+                        <select x-model="selectedMonth" @change="onMonthChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-3 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-medium">
+                            <template x-for="month in getAvailableMonths()" :key="month">
+                                <option :value="month" x-text="formatMonthLabel(month)"></option>
+                            </template>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Card Widget -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-950 text-white p-5 rounded-2xl shadow-md flex flex-col space-y-3 relative overflow-hidden">
+                    <!-- Background Accent -->
+                    <div class="absolute -right-10 -bottom-10 opacity-10 text-white">
+                        <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+                        </svg>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-400 font-medium tracking-wider">月度总预算</span>
+                        <button @click="activeTab = 'settings'" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">修改</button>
+                    </div>
+                    
+                    <div class="flex items-baseline space-x-1">
+                        <span class="text-2xl font-extrabold" x-text="'¥' + (budget > 0 ? parseFloat(budget).toFixed(2) : '---')"></span>
+                    </div>
+
+                    <div class="space-y-1 z-10">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span x-text="'已消费: ¥' + stats.expense.toFixed(2)"></span>
+                            <span x-text="budget > 0 ? (getBudgetUsagePercent() > 100 ? '超支啦！' : getBudgetUsagePercent().toFixed(1) + '%') : '无预算'"></span>
+                        </div>
+                        <!-- Progress bar -->
+                        <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500"
+                                 :class="getBudgetUsagePercent() >= 100 ? 'bg-rose-500' : (getBudgetUsagePercent() >= 80 ? 'bg-amber-500' : 'bg-emerald-500')"
+                                 :style="'width: ' + Math.min(getBudgetUsagePercent(), 100) + '%'"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1" x-show="budget > 0">
+                            <span x-show="budget - stats.expense >= 0" x-text="'本月剩余预算: ¥' + (budget - stats.expense).toFixed(2)"></span>
+                            <span class="text-rose-400 font-semibold" x-show="budget - stats.expense < 0" x-text="'超出预算: ¥' + Math.abs(budget - stats.expense).toFixed(2)"></span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Content Area (Right column on desktop) -->
+            <div class="w-full md:w-3/4 flex-grow">
+                
+                <!-- Tab: Dashboard -->
+                <div x-show="activeTab === 'dashboard'" class="space-y-6">
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        
+                        <!-- Total Income -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md duration-200">
+                            <div class="space-y-1">
+                                <p class="text-xs font-semibold text-slate-400 tracking-wider">本月总收入</p>
+                                <p class="text-2xl font-bold text-emerald-600 tracking-tight" x-text="'¥' + stats.income.toFixed(2)"></p>
+                            </div>
+                            <div class="bg-emerald-50 p-3 rounded-2xl text-emerald-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Total Expense -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md duration-200">
+                            <div class="space-y-1">
+                                <p class="text-xs font-semibold text-slate-400 tracking-wider">本月总支出</p>
+                                <p class="text-2xl font-bold text-rose-600 tracking-tight" x-text="'¥' + stats.expense.toFixed(2)"></p>
+                            </div>
+                            <div class="bg-rose-50 p-3 rounded-2xl text-rose-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Balance -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition hover:shadow-md duration-200 sm:col-span-1">
+                            <div class="space-y-1">
+                                <p class="text-xs font-semibold text-slate-400 tracking-wider">本月结余</p>
+                                <p class="text-2xl font-bold tracking-tight" :class="stats.balance >= 0 ? 'text-slate-800' : 'text-rose-600'" x-text="'¥' + stats.balance.toFixed(2)"></p>
+                            </div>
+                            <div class="p-3 rounded-2xl" :class="stats.balance >= 0 ? 'bg-slate-100 text-slate-600' : 'bg-rose-50 text-rose-500'">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Expense Categories Chart -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                            <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center space-x-2">
+                                <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                                <span>支出分类统计</span>
+                            </h3>
+                            <div class="relative flex justify-center items-center h-[280px]">
+                                <canvas id="expenseChart" class="max-w-full"></canvas>
+                                <!-- No Data State Inside Canvas -->
+                                <div x-show="stats.expense === 0" class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 text-slate-400 space-y-2">
+                                    <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                                    </svg>
+                                    <p class="text-xs">暂无支出数据</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Trend Chart -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                            <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center space-x-2">
+                                <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                                <span>每日支出趋势 (本月)</span>
+                            </h3>
+                            <div class="relative flex justify-center items-center h-[280px]">
+                                <canvas id="trendChart" class="max-w-full"></canvas>
+                                <!-- No Data State Inside Canvas -->
+                                <div x-show="stats.expense === 0" class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 text-slate-400 space-y-2">
+                                    <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"></path>
+                                    </svg>
+                                    <p class="text-xs">暂无支出趋势</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Records Panel -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center space-x-2">
+                                <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                                <span>最近记录</span>
+                            </h3>
+                            <button @click="activeTab = 'records'" class="text-xs text-emerald-500 hover:text-emerald-600 font-medium flex items-center space-x-1">
+                                <span>查看全部</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Records list (limit 5) -->
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="record in getFilteredRecords().slice(0, 5)" :key="record.id">
+                                <div class="py-3.5 flex justify-between items-center hover:bg-slate-50 rounded-xl px-2 -mx-2 transition duration-150">
+                                    <div class="flex items-center space-x-3.5">
+                                        <!-- Category Circle Icon -->
+                                        <div class="p-2.5 rounded-2xl text-white shadow-sm flex-shrink-0" :class="getCategoryColor(record.category)">
+                                            <!-- SVG category icon mapping -->
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" x-html="getCategorySVG(record.category)"></svg>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-baseline space-x-2">
+                                                <span class="font-bold text-slate-800 text-sm" x-text="record.category"></span>
+                                                <span class="text-[10px] text-slate-400 font-medium px-1.5 py-0.5 rounded bg-slate-100" x-text="formatDateLabel(record.date)"></span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 truncate max-w-[150px] sm:max-w-[300px]" x-text="record.remark || '无备注'"></p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-bold text-base tracking-tight" :class="record.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'" x-text="(record.type === 'expense' ? '-' : '+') + ' ¥' + parseFloat(record.amount).toFixed(2)"></span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="getFilteredRecords().length === 0">
+                                <div class="py-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
+                                    <div class="p-4 bg-slate-100 rounded-full text-slate-300">
+                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-medium">本月暂无记账数据，点右下角记一笔吧！</p>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Tab: Records Details -->
+                <div x-show="activeTab === 'records'" class="space-y-6">
+                    
+                    <!-- Search & Filter Controls -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <!-- Search -->
+                            <div class="relative flex-grow">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </span>
+                                <input type="text" x-model="searchQuery" placeholder="搜索分类、备注等..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 py-2 pl-10 pr-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-medium">
+                            </div>
+                            
+                            <!-- Filter Tabs (Expense / Income) -->
+                            <div class="flex bg-slate-100 p-1 rounded-xl">
+                                <button @click="filterType = 'all'" :class="filterType === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition">全部</button>
+                                <button @click="filterType = 'expense'" :class="filterType === 'expense' ? 'bg-white text-rose-500 shadow-sm' : 'text-slate-500 hover:text-rose-500'" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition">支出</button>
+                                <button @click="filterType = 'income'" :class="filterType === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-emerald-600'" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition">收入</button>
+                            </div>
+                        </div>
+
+                        <!-- Category Filter Dropdown -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-medium text-slate-400">分类过滤：</span>
+                            <button @click="filterCategory = 'all'" :class="filterCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="px-2.5 py-1 rounded-lg text-xs font-medium transition">
+                                全部
+                            </button>
+                            <template x-for="cat in (filterType === 'income' ? incomeCategories : (filterType === 'expense' ? expenseCategories : [...expenseCategories, ...incomeCategories].filter((v, i, a) => a.indexOf(v) === i)))" :key="cat">
+                                <button @click="filterCategory = cat" :class="filterCategory === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="px-2.5 py-1 rounded-lg text-xs font-medium transition" x-text="cat"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Full Records List Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                        <div class="flex justify-between items-center mb-5">
+                            <h3 class="text-sm font-bold text-slate-700 flex items-center space-x-2">
+                                <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                                <span>交易明细列表</span>
+                            </h3>
+                            <span class="text-xs text-slate-400" x-text="'共 ' + getDetailedFilteredRecords().length + ' 条记录'"></span>
+                        </div>
+
+                        <!-- Records list -->
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="record in getDetailedFilteredRecords()" :key="record.id">
+                                <div class="py-4 flex justify-between items-center hover:bg-slate-50 rounded-xl px-2 -mx-2 transition duration-150 group">
+                                    <div class="flex items-center space-x-3.5">
+                                        <!-- Category Circle Icon -->
+                                        <div class="p-2.5 rounded-2xl text-white shadow-sm flex-shrink-0" :class="getCategoryColor(record.category)">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" x-html="getCategorySVG(record.category)"></svg>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-baseline space-x-2">
+                                                <span class="font-bold text-slate-800 text-sm" x-text="record.category"></span>
+                                                <span class="text-[10px] text-slate-400 font-semibold px-2 py-0.5 rounded bg-slate-100" x-text="record.date"></span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 mt-0.5" x-text="record.remark || '无备注'"></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="text-right">
+                                            <span class="font-extrabold text-base tracking-tight block" :class="record.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'" x-text="(record.type === 'expense' ? '-' : '+') + ' ¥' + parseFloat(record.amount).toFixed(2)"></span>
+                                        </div>
+                                        <!-- Delete Button -->
+                                        <button @click="deleteRecord(record.id)" class="text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition duration-200 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100" title="删除记录">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="getDetailedFilteredRecords().length === 0">
+                                <div class="py-16 flex flex-col items-center justify-center text-slate-400 space-y-3">
+                                    <div class="p-4 bg-slate-100 rounded-full text-slate-300">
+                                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm font-medium">没有找到符合筛选条件的记录</p>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Tab: Settings -->
+                <div x-show="activeTab === 'settings'" class="space-y-6">
+                    
+                    <!-- Monthly Budget Limit Config -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center space-x-2">
+                            <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                            <span>月度支出预算设置</span>
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">设定合理的预算可以帮助你更好地控制不合理的支出。设为 0 或留空则表示不设定预算限制。</p>
+                        <div class="flex items-center space-x-3 max-w-sm">
+                            <div class="relative flex-grow">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 text-sm font-semibold pointer-events-none">¥</span>
+                                <input type="number" x-model="tempBudget" placeholder="例如：3000" min="0" step="100" class="w-full bg-slate-50 border border-slate-200 text-slate-700 py-2.5 pl-8 pr-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-semibold">
+                            </div>
+                            <button @click="saveBudget()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition duration-200">保存设置</button>
+                        </div>
+                    </div>
+
+                    <!-- Data Backup and Restore -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center space-x-2">
+                            <span class="w-1.5 h-4 bg-emerald-500 rounded-full inline-block"></span>
+                            <span>数据备份与管理</span>
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">你的记账数据仅存储在当前浏览器的本地缓存中。建议定期导出备份，防止浏览器缓存被清理导致数据丢失。</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Backup Card -->
+                            <div class="border border-slate-200 p-4 rounded-2xl flex flex-col justify-between">
+                                <div class="mb-3">
+                                    <h4 class="text-xs font-bold text-slate-700 mb-1">导出记账数据</h4>
+                                    <p class="text-[11px] text-slate-400">将你的所有记账记录以及预算配置导出保存。</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button @click="exportCSV()" class="flex-grow flex items-center justify-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-semibold transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <span>导出为 Excel/CSV</span>
+                                    </button>
+                                    <button @click="exportJSON()" class="flex-grow flex items-center justify-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-semibold transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        <span>导出备份 (JSON)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Restore Card -->
+                            <div class="border border-slate-200 p-4 rounded-2xl flex flex-col justify-between">
+                                <div class="mb-3">
+                                    <h4 class="text-xs font-bold text-slate-700 mb-1">导入记账数据</h4>
+                                    <p class="text-[11px] text-slate-400">选择之前导出的备份 JSON 文件，合并或覆盖到当前数据中。</p>
+                                </div>
+                                <div>
+                                    <label class="flex-grow flex items-center justify-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 py-2 rounded-xl text-xs font-semibold cursor-pointer transition border border-emerald-200 border-dashed">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"></path>
+                                        </svg>
+                                        <span>选择文件导入</span>
+                                        <input type="file" accept=".json" @change="importJSON($event)" class="hidden">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset App Option -->
+                    <div class="bg-red-50 rounded-2xl border border-red-100 p-5">
+                        <h3 class="text-sm font-bold text-red-700 mb-2 flex items-center space-x-2">
+                            <span class="w-1.5 h-4 bg-red-500 rounded-full inline-block"></span>
+                            <span>危险操作区域</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">清空所有本地数据将永久移除全部的收入、支出记录和预算设定，该操作不可逆，请谨慎行事！</p>
+                        <button @click="clearAllData()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition duration-200 shadow-sm">
+                            清除全部本地记录
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Mobile Navigation Tab Bar -->
+    <nav class="md:hidden bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 flex justify-around py-2.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-emerald-500' : 'text-slate-400'" class="flex flex-col items-center justify-center space-y-0.5 w-1/4">
+            <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path>
+            </svg>
+            <span class="text-[10px] font-semibold">看板</span>
+        </button>
+        <button @click="activeTab = 'records'" :class="activeTab === 'records' ? 'text-emerald-500' : 'text-slate-400'" class="flex flex-col items-center justify-center space-y-0.5 w-1/4">
+            <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+            </svg>
+            <span class="text-[10px] font-semibold">明细</span>
+        </button>
+        <!-- Center Floating Button -->
+        <button @click="openAddModal()" class="flex flex-col items-center justify-center -mt-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-3.5 shadow-lg shadow-emerald-500/30 transform hover:scale-105 active:scale-95 transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+        </button>
+        <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'text-emerald-500' : 'text-slate-400'" class="flex flex-col items-center justify-center space-y-0.5 w-1/4">
+            <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <span class="text-[10px] font-semibold">设置</span>
+        </button>
+    </nav>
+
+    <!-- Modal: Add Record Form Dialog -->
+    <div x-show="showAddModal" 
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/60 transition-opacity" @click="showAddModal = false"></div>
+
+        <!-- Modal Content Container -->
+        <div class="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-md w-full z-10 border border-slate-100 transform transition-all p-6 relative"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="scale-95 translate-y-4"
+             x-transition:enter-end="scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="scale-100 translate-y-0"
+             x-transition:leave-end="scale-95 translate-y-4">
+            
+            <!-- Close button -->
+            <button @click="showAddModal = false" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                <span>添加新记录</span>
+            </h2>
+
+            <!-- Form Tab Selector (Expense / Income) -->
+            <div class="flex bg-slate-100 p-1.5 rounded-2xl mb-5">
+                <button @click="switchFormType('expense')" :class="form.type === 'expense' ? 'bg-white text-rose-500 shadow-md font-bold' : 'text-slate-500 hover:text-slate-700'" class="flex-grow py-2.5 rounded-xl text-sm font-semibold transition duration-200">
+                    支出
+                </button>
+                <button @click="switchFormType('income')" :class="form.type === 'income' ? 'bg-white text-emerald-600 shadow-md font-bold' : 'text-slate-500 hover:text-slate-700'" class="flex-grow py-2.5 rounded-xl text-sm font-semibold transition duration-200">
+                    收入
+                </button>
+            </div>
+
+            <!-- Transaction Form -->
+            <form @submit.prevent="submitForm()" class="space-y-4">
+                
+                <!-- Amount Field -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">收支金额 (元)</label>
+                    <div class="relative rounded-2xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="text-slate-500 font-extrabold text-lg">¥</span>
+                        </div>
+                        <input type="number" step="0.01" min="0.01" max="10000000" required x-model="form.amount" placeholder="0.00" class="block w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-lg font-bold text-slate-800">
+                    </div>
+                </div>
+
+                <!-- Date Field -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">记录日期</label>
+                    <input type="date" required x-model="form.date" class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm font-medium text-slate-700">
+                </div>
+
+                <!-- Category Field Grid -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">选择分类</label>
+                    <div class="grid grid-cols-4 gap-2.5">
+                        <template x-for="cat in (form.type === 'expense' ? expenseCategories : incomeCategories)" :key="cat">
+                            <button type="button" @click="form.category = cat" 
+                                    :class="form.category === cat ? (form.type === 'expense' ? 'bg-rose-50 border-rose-300 text-rose-600 shadow-sm ring-1 ring-rose-300' : 'bg-emerald-50 border-emerald-300 text-emerald-600 shadow-sm ring-1 ring-emerald-300') : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
+                                    class="border p-2.5 rounded-2xl flex flex-col items-center justify-center space-y-1 transition duration-150">
+                                <div class="p-1.5 rounded-xl" :class="form.category === cat ? (form.type === 'expense' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white') : 'bg-slate-200/50 text-slate-500'">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" x-html="getCategorySVG(cat)"></svg>
+                                </div>
+                                <span class="text-[10px] font-bold" x-text="cat"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Remark Field -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">备注说明 (可选)</label>
+                    <input type="text" x-model="form.remark" placeholder="比如：麦当劳午餐、打车等..." class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm text-slate-700">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full text-white font-semibold py-3.5 rounded-2xl shadow-lg transition duration-200 transform hover:scale-[1.01] text-sm mt-4 focus:outline-none"
+                        :class="form.type === 'expense' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/10' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/10'">
+                    确定添加记录
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer Description -->
+    <footer class="bg-white border-t border-slate-100 py-6 text-center text-xs text-slate-400 mb-16 md:mb-0">
+        <p>© 2026 闪账 个人记账应用 · 数据安全离线存储</p>
+    </footer>
+
+    <!-- App JavaScript Logic -->
+    <script>
+        function financeApp() {
+            return {
+                // Application State
+                activeTab: 'dashboard',
+                showAddModal: false,
+                records: [],
+                budget: 3000,
+                tempBudget: '',
+                selectedMonth: '', // Current selected month (YYYY-MM)
+                
+                // Form State
+                form: {
+                    type: 'expense',
+                    amount: '',
+                    date: '',
+                    category: '',
+                    remark: ''
+                },
+
+                // Filters State
+                searchQuery: '',
+                filterType: 'all',
+                filterCategory: 'all',
+
+                // Categories Configuration
+                expenseCategories: ['餐饮', '交通', '购物', '娱乐', '生活', '医疗', '旅行', '其他'],
+                incomeCategories: ['工资', '兼职', '理财', '礼金', '其他'],
+
+                // Icons SVG definitions path representation
+                svgs: {
+                    '餐饮': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />', // Sunshine/Kitchen
+                    '交通': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />', // Rocket / Travel
+                    '购物': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />', // Shopping Bag
+                    '娱乐': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />', // Entertainment Ticket
+                    '生活': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />', // Home
+                    '医疗': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />', // Health / Heart
+                    '旅行': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.5A2.5 2.5 0 0019 9.5V8a2 2 0 00-2-2h-3" />', // Global / Travel
+                    '工资': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />', // Cash / Money
+                    '兼职': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l.707-.707m2.828 9.9a5 5 0 113.536 0V21h-3.536v-3.457z" />', // Lightbulb / Part-time
+                    '理财': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />', // Chart Trend / Finance
+                    '礼金': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5a2 2 0 10-2 2h2zm-2 4h4M8 11h8a2 2 0 012 2v5a2 2 0 01-2 2H8a2 2 0 01-2-2v-5a2 2 0 012-2z" />', // Gift Package
+                    '其他': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />' // Wallet / Dollar Circle
+                },
+
+                colors: {
+                    '餐饮': 'bg-orange-500',
+                    '交通': 'bg-blue-500',
+                    '购物': 'bg-purple-500',
+                    '娱乐': 'bg-pink-500',
+                    '生活': 'bg-teal-500',
+                    '医疗': 'bg-rose-500',
+                    '旅行': 'bg-indigo-500',
+                    '工资': 'bg-emerald-500',
+                    '兼职': 'bg-cyan-500',
+                    '理财': 'bg-lime-600',
+                    '礼金': 'bg-amber-500',
+                    '其他': 'bg-slate-500'
+                },
+
+                // Monthly summary computations
+                stats: {
+                    income: 0,
+                    expense: 0,
+                    balance: 0
+                },
+
+                // Chart instances holders
+                expenseChartInstance: null,
+                trendChartInstance: null,
+
+                // Initialize App
+                init() {
+                    // Load budget limit
+                    const savedBudget = localStorage.getItem('shanzhang_budget');
+                    if (savedBudget !== null) {
+                        this.budget = parseFloat(savedBudget);
+                    }
+                    this.tempBudget = this.budget > 0 ? this.budget : '';
+
+                    // Load records
+                    const savedRecords = localStorage.getItem('shanzhang_records');
+                    if (savedRecords) {
+                        this.records = JSON.parse(savedRecords);
+                    } else {
+                        // Generate mock data representing current month if empty
+                        this.generateMockData();
+                    }
+
+                    // Set default filter month to current month
+                    const today = new Date();
+                    this.selectedMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+
+                    // Calculate stats
+                    this.recalculateStats();
+
+                    // Watchers
+                    this.$watch('records', () => {
+                        this.recalculateStats();
+                        this.saveData();
+                        this.updateCharts();
+                    });
+                    this.$watch('activeTab', (val) => {
+                        if (val === 'dashboard') {
+                            this.$nextTick(() => { this.updateCharts(); });
+                        }
+                    });
+
+                    // Initial charts generation after DOM is ready
+                    this.$nextTick(() => {
+                        this.updateCharts();
+                    });
+                },
+
+                // Generate Mock Data so dashboard has high visual appeal right out of the box
+                generateMockData() {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    
+                    const mock = [
+                        { id: 1, type: 'income', amount: 8500.00, category: '工资', date: `${year}-${month}-01`, remark: '5月份正常基本工资发放' },
+                        { id: 2, type: 'income', amount: 450.00, category: '兼职', date: `${year}-${month}-08`, remark: 'UI设计外包兼职尾款' },
+                        { id: 3, type: 'expense', amount: 32.50, category: '餐饮', date: `${year}-${month}-05`, remark: '麦当劳麦辣鸡腿堡套餐' },
+                        { id: 4, type: 'expense', amount: 15.00, category: '交通', date: `${year}-${month}-05`, remark: '地铁通勤充值' },
+                        { id: 5, type: 'expense', amount: 288.00, category: '购物', date: `${year}-${month}-08`, remark: '网购春夏季纯棉T恤' },
+                        { id: 6, type: 'expense', amount: 45.00, category: '娱乐', date: `${year}-${month}-10`, remark: '电影票《指环王》重映' },
+                        { id: 7, type: 'expense', amount: 120.00, category: '餐饮', date: `${year}-${month}-12`, remark: '周末朋友火锅聚餐AA' },
+                        { id: 8, type: 'expense', amount: 95.00, category: '生活', date: `${year}-${month}-14`, remark: '缴纳本月手机话费网费' },
+                        { id: 9, type: 'income', amount: 120.80, category: '理财', date: `${year}-${month}-15`, remark: '基金理财分红到账' },
+                    ];
+                    
+                    // Add some dates closer to today
+                    const d = new Date();
+                    for (let i = 1; i <= 3; i++) {
+                        d.setDate(today.getDate() - i);
+                        const formatD = d.toISOString().split('T')[0];
+                        if (formatD.startsWith(`${year}-${month}`)) {
+                            mock.push({
+                                id: Date.now() + i * 10,
+                                type: 'expense',
+                                amount: parseFloat((Math.random() * 40 + 10).toFixed(2)),
+                                category: '餐饮',
+                                date: formatD,
+                                remark: ['美味午餐', '便利店零食饮料', '蜜雪冰城奶茶'][i - 1]
+                            });
+                        }
+                    }
+
+                    this.records = mock.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    this.saveData();
+                },
+
+                // Persistent storage
+                saveData() {
+                    localStorage.setItem('shanzhang_records', JSON.stringify(this.records));
+                },
+
+                // Recalculate This Month stats based on selectedMonth
+                recalculateStats() {
+                    let totalIncome = 0;
+                    let totalExpense = 0;
+
+                    this.records.forEach(r => {
+                        // Match year-month
+                        if (r.date.startsWith(this.selectedMonth)) {
+                            const val = parseFloat(r.amount);
+                            if (r.type === 'income') {
+                                totalIncome += val;
+                            } else if (r.type === 'expense') {
+                                totalExpense += val;
+                            }
+                        }
+                    });
+
+                    this.stats.income = totalIncome;
+                    this.stats.expense = totalExpense;
+                    this.stats.balance = totalIncome - totalExpense;
+                },
+
+                // Month Select Helpers
+                getAvailableMonths() {
+                    const months = new Set();
+                    // Add current month in case it has no data yet
+                    const today = new Date();
+                    months.add(today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0'));
+                    
+                    this.records.forEach(r => {
+                        if (r.date && r.date.length >= 7) {
+                            months.add(r.date.substring(0, 7));
+                        }
+                    });
+                    // Sort descending
+                    return Array.from(months).sort((a, b) => b.localeCompare(a));
+                },
+
+                formatMonthLabel(monthStr) {
+                    if (!monthStr) return '';
+                    const parts = monthStr.split('-');
+                    return `${parts[0]}年${parseInt(parts[1])}月`;
+                },
+
+                onMonthChange() {
+                    this.recalculateStats();
+                    this.updateCharts();
+                },
+
+                // Budget computation
+                getBudgetUsagePercent() {
+                    if (this.budget <= 0) return 0;
+                    return (this.stats.expense / this.budget) * 100;
+                },
+
+                saveBudget() {
+                    const val = parseFloat(this.tempBudget);
+                    if (isNaN(val) || val <= 0) {
+                        this.budget = 0;
+                        this.tempBudget = '';
+                    } else {
+                        this.budget = val;
+                        this.tempBudget = val;
+                    }
+                    localStorage.setItem('shanzhang_budget', this.budget);
+                    alert('月度预算设置已成功更新！');
+                    this.activeTab = 'dashboard';
+                },
+
+                // Get category specific assets
+                getCategorySVG(cat) {
+                    return this.svgs[cat] || this.svgs['其他'];
+                },
+
+                getCategoryColor(cat) {
+                    return this.colors[cat] || this.colors['其他'];
+                },
+
+                // Filter & Sort core logic for recent view
+                getFilteredRecords() {
+                    return this.records.filter(r => r.date.startsWith(this.selectedMonth));
+                },
+
+                // Detailed Tab filtering logic with multiple criteria (type, category, search)
+                getDetailedFilteredRecords() {
+                    return this.records.filter(r => {
+                        // Month filter
+                        const monthMatch = r.date.startsWith(this.selectedMonth);
+                        
+                        // Type filter
+                        const typeMatch = this.filterType === 'all' || r.type === this.filterType;
+                        
+                        // Category filter
+                        const categoryMatch = this.filterCategory === 'all' || r.category === this.filterCategory;
+                        
+                        // Search query filter (search categories or remarks)
+                        let searchMatch = true;
+                        if (this.searchQuery.trim() !== '') {
+                            const query = this.searchQuery.toLowerCase();
+                            searchMatch = r.category.toLowerCase().includes(query) || 
+                                          (r.remark && r.remark.toLowerCase().includes(query)) ||
+                                          r.amount.toString().includes(query);
+                        }
+                        
+                        return monthMatch && typeMatch && categoryMatch && searchMatch;
+                    });
+                },
+
+                // Format friendly dates for UI
+                formatDateLabel(dateStr) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (dateStr === today) return '今天';
+                    
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toISOString().split('T')[0];
+                    if (dateStr === yesterdayStr) return '昨天';
+                    
+                    // Otherwise return Month-Day
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3) {
+                        return `${parts[1]}-${parts[2]}`;
+                    }
+                    return dateStr;
+                },
+
+                // Transaction creation form utilities
+                openAddModal() {
+                    const today = new Date();
+                    this.form.type = 'expense';
+                    this.form.amount = '';
+                    this.form.date = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+                    this.form.category = this.expenseCategories[0];
+                    this.form.remark = '';
+                    this.showAddModal = true;
+                },
+
+                switchFormType(type) {
+                    this.form.type = type;
+                    // Reset to first matching category in the type
+                    if (type === 'expense') {
+                        this.form.category = this.expenseCategories[0];
+                    } else {
+                        this.form.category = this.incomeCategories[0];
+                    }
+                },
+
+                submitForm() {
+                    const amt = parseFloat(this.form.amount);
+                    if (isNaN(amt) || amt <= 0) {
+                        alert('请输入正确的金额！');
+                        return;
+                    }
+
+                    const newRecord = {
+                        id: Date.now(),
+                        type: this.form.type,
+                        amount: amt,
+                        category: this.form.category,
+                        date: this.form.date,
+                        remark: this.form.remark.trim()
+                    };
+
+                    this.records.unshift(newRecord);
+                    
+                    // Sort descending by date
+                    this.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    
+                    this.saveData();
+
+                    // Ensure selectedMonth matches newly added item's month so it shows up
+                    const newMonth = newRecord.date.substring(0, 7);
+                    this.selectedMonth = newMonth;
+                    this.recalculateStats();
+
+                    this.showAddModal = false;
+
+                    // Proactively check if budget exceeded and warn
+                    if (this.form.type === 'expense' && this.budget > 0) {
+                        const usage = this.getBudgetUsagePercent();
+                        if (usage >= 100) {
+                            alert(`🚨 提示：您本月的总支出已达 ¥${this.stats.expense.toFixed(2)}，超出了设置的月度预算上限 ¥${this.budget.toFixed(2)}！请合理消费！`);
+                        } else if (usage >= 80) {
+                            alert(`⚠️ 警示：您本月已使用了 ${(usage).toFixed(1)}% 的预算。剩余可用金额为 ¥${(this.budget - this.stats.expense).toFixed(2)}。`);
+                        }
+                    }
+                },
+
+                deleteRecord(id) {
+                    if (confirm('确定要彻底删除这条记账明细吗？')) {
+                        this.records = this.records.filter(r => r.id !== id);
+                        this.recalculateStats();
+                        this.saveData();
+                        this.updateCharts();
+                    }
+                },
+
+                // Reset App Data
+                clearAllData() {
+                    if (confirm('⚠️ 警告：该操作将彻底清空你所有的账本流水和预算，此操作无法恢复！你确定要清空全部数据吗？')) {
+                        this.records = [];
+                        this.budget = 3000;
+                        this.tempBudget = 3000;
+                        localStorage.removeItem('shanzhang_records');
+                        localStorage.removeItem('shanzhang_budget');
+                        this.recalculateStats();
+                        this.updateCharts();
+                        alert('所有本地数据已被清空！');
+                        this.activeTab = 'dashboard';
+                    }
+                },
+
+                // Charts drawing logic
+                updateCharts() {
+                    // Only draw when dashboard tab is active
+                    if (this.activeTab !== 'dashboard') return;
+
+                    const monthData = this.getFilteredRecords();
+                    
+                    // --- 1. Category Breakdown Chart ---
+                    const expenseByCat = {};
+                    this.expenseCategories.forEach(cat => expenseByCat[cat] = 0);
+                    
+                    let hasExpense = false;
+                    monthData.forEach(r => {
+                        if (r.type === 'expense') {
+                            const val = parseFloat(r.amount);
+                            const cat = r.category || '其他';
+                            if (!expenseByCat[cat]) {
+                                expenseByCat[cat] = 0;
+                            }
+                            expenseByCat[cat] += val;
+                            hasExpense = true;
+                        }
+                    });
+
+                    const catLabels = [];
+                    const catValues = [];
+                    const catBgColors = [];
+
+                    Object.keys(expenseByCat).forEach(cat => {
+                        if (expenseByCat[cat] > 0) {
+                            catLabels.push(cat);
+                            catValues.push(expenseByCat[cat]);
+                            
+                            // Map custom Tailwind BG colors back to Hex code for ChartJS
+                            const hexMap = {
+                                'bg-orange-500': '#f97316',
+                                'bg-blue-500': '#3b82f6',
+                                'bg-purple-500': '#a855f7',
+                                'bg-pink-500': '#ec4899',
+                                'bg-teal-500': '#14b8a6',
+                                'bg-rose-500': '#f43f5e',
+                                'bg-indigo-500': '#6366f1',
+                                'bg-slate-500': '#64748b'
+                            };
+                            const classColor = this.getCategoryColor(cat);
+                            catBgColors.push(hexMap[classColor] || '#64748b');
+                        }
+                    });
+
+                    const ctxExpense = document.getElementById('expenseChart');
+                    if (ctxExpense) {
+                        if (this.expenseChartInstance) {
+                            this.expenseChartInstance.destroy();
+                        }
+
+                        if (hasExpense && catValues.length > 0) {
+                            this.expenseChartInstance = new Chart(ctxExpense, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: catLabels,
+                                    datasets: [{
+                                        data: catValues,
+                                        backgroundColor: catBgColors,
+                                        borderWidth: 2,
+                                        borderColor: '#ffffff',
+                                        hoverOffset: 6
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                boxWidth: 12,
+                                                padding: 14,
+                                                font: { size: 11, weight: '500' }
+                                            }
+                                        },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    const label = context.label || '';
+                                                    const value = context.parsed || 0;
+                                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                    const percentage = ((value / total) * 100).toFixed(1);
+                                                    return ` ${label}: ¥${value.toFixed(2)} (${percentage}%)`;
+                                                }
+                                            }
+                                        }
+                                    },
+                                    cutout: '62%'
+                                }
+                            });
+                        }
+                    }
+
+                    // --- 2. Daily Expenses Trend Bar Chart ---
+                    const daysInMonth = {};
+                    const parts = this.selectedMonth.split('-');
+                    const year = parseInt(parts[0]);
+                    const month = parseInt(parts[1]);
+                    const lastDay = new Date(year, month, 0).getDate();
+
+                    for (let i = 1; i <= lastDay; i++) {
+                        const dayStr = String(i).padStart(2, '0');
+                        daysInMonth[`${this.selectedMonth}-${dayStr}`] = 0;
+                    }
+
+                    let dailyStats = false;
+                    monthData.forEach(r => {
+                        if (r.type === 'expense' && daysInMonth[r.date] !== undefined) {
+                            daysInMonth[r.date] += parseFloat(r.amount);
+                            dailyStats = true;
+                        }
+                    });
+
+                    const trendLabels = Object.keys(daysInMonth).map(dateStr => {
+                        return parseInt(dateStr.split('-')[2]) + '日';
+                    });
+                    const trendValues = Object.values(daysInMonth);
+
+                    const ctxTrend = document.getElementById('trendChart');
+                    if (ctxTrend) {
+                        if (this.trendChartInstance) {
+                            this.trendChartInstance.destroy();
+                        }
+
+                        if (dailyStats) {
+                            this.trendChartInstance = new Chart(ctxTrend, {
+                                type: 'bar',
+                                data: {
+                                    labels: trendLabels,
+                                    datasets: [{
+                                        label: '支出金额 (元)',
+                                        data: trendValues,
+                                        backgroundColor: 'rgba(244, 63, 94, 0.75)', // tailwind rose-500 with opacity
+                                        hoverBackgroundColor: 'rgba(244, 63, 94, 1)',
+                                        borderRadius: 6,
+                                        maxBarThickness: 12
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            grid: {
+                                                color: 'rgba(226, 232, 240, 0.6)', // slate-200
+                                            },
+                                            ticks: {
+                                                font: { size: 10 }
+                                            }
+                                        },
+                                        x: {
+                                            grid: {
+                                                display: false
+                                            },
+                                            ticks: {
+                                                autoSkip: true,
+                                                maxTicksLimit: 10,
+                                                font: { size: 10 }
+                                            }
+                                        }
+                                    },
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+
+                // Subsequent feature: export data as JSON file
+                exportJSON() {
+                    const dataObj = {
+                        app: 'shanzhang',
+                        version: '1.0.0',
+                        budget: this.budget,
+                        records: this.records
+                    };
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    downloadAnchor.setAttribute("download", `闪账备份_${timestamp}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                },
+
+                // Subsequent feature: import data from JSON file
+                importJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (imported.app !== 'shanzhang' || !Array.isArray(imported.records)) {
+                                alert('非法的备份文件格式！请上传有效的“闪账”备份文件。');
+                                return;
+                            }
+                            
+                            if (confirm(`已读取到备份文件中的 ${imported.records.length} 条账流水。\n点击确定将合并该数据（相同ID将被忽略），点击取消放弃导入。`)) {
+                                let mergedCount = 0;
+                                imported.records.forEach(newR => {
+                                    if (!this.records.some(r => r.id === newR.id)) {
+                                        this.records.push(newR);
+                                        mergedCount++;
+                                    }
+                                });
+
+                                // Update budget if presented and user allows
+                                if (imported.budget && imported.budget !== this.budget) {
+                                    if (confirm(`备份文件中的预算设置为 ¥${imported.budget}，当前预算为 ¥${this.budget}。\n是否更新预算值？`)) {
+                                        this.budget = parseFloat(imported.budget);
+                                        this.tempBudget = this.budget;
+                                        localStorage.setItem('shanzhang_budget', this.budget);
+                                    }
+                                }
+
+                                // Sort descending
+                                this.records.sort((a, b) => new Date(b.date) - new Date(a.date));
+                                this.saveData();
+                                this.recalculateStats();
+                                this.updateCharts();
+                                alert(`数据导入成功！成功合并 ${mergedCount} 条新记录。`);
+                            }
+                        } catch (err) {
+                            alert('解析文件出错，请检查该 JSON 文件是否损坏！');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+
+                // Subsequent feature: export data as Excel-friendly CSV format
+                exportCSV() {
+                    if (this.records.length === 0) {
+                        alert('目前没有数据可以导出！');
+                        return;
+                    }
+
+                    // CSV headers with UTF-8 BOM representation for Excel compatibility
+                    let csvContent = "\uFEFF";
+                    csvContent += "日期,收支类型,分类,金额,备注\n";
+
+                    this.records.forEach(r => {
+                        const typeText = r.type === 'expense' ? '支出' : '收入';
+                        const remarkText = (r.remark || '').replace(/"/g, '""'); // Escape double quotes
+                        csvContent += `${r.date},${typeText},${r.category},${r.amount},"${remarkText}"\n`;
+                    });
+
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    const timestamp = new Date().toISOString().split('T')[0];
+                    link.setAttribute("download", `闪账数据导出_${timestamp}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
